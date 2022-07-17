@@ -25,6 +25,8 @@ DB_NAME="${POSTGRES_DB:=newsletter}"
 DB_PORT="${POSTGRES_PORT:=5432}"
 
 # Launch postgres using Docker
+if [[ -z "${SKIP_DOCKER}" ]]
+then
 docker run \
   -e POSTGRES_USER=${DB_USER} \
   -e POSTGRES_PASSWORD=${DB_PASSWORD} \
@@ -32,6 +34,7 @@ docker run \
   -p "${DB_PORT}":5432 \
   -d postgres \
   postgres -N 1000
+fi
   # ^ Increased maximum number of connections for testing purposes
 
 # Keep pinging Postgres until it's ready to accept commands
@@ -44,3 +47,6 @@ done
 
 export DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}
 sqlx database create
+sqlx migrate run
+
+>&2 echo "Postgres has been migrated, ready to go!"
