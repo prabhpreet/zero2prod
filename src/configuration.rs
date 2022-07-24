@@ -1,6 +1,5 @@
 //! src/configuration.rs
 
-use std::fmt::format;
 #[derive(serde::Deserialize)]
 pub struct Settings {
     pub database: DatabaseSettings,
