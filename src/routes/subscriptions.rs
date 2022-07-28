@@ -1,6 +1,6 @@
 use actix_web::{web, HttpResponse};
 use chrono::Utc;
-use log::{error, info};
+use tracing::{error, info};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -12,13 +12,13 @@ pub struct FormData {
 
 pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> HttpResponse {
     let request_id = Uuid::new_v4();
-    log::info!(
+    tracing::info!(
         "request_id {} - Adding '{}' '{}' as new subscriber.",
         request_id,
         form.email,
         form.name
     );
-    log::info!(
+    tracing::info!(
         "request_id {} - Saving new subscriber details in the database",
         request_id
     );
@@ -37,7 +37,7 @@ pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> Ht
     .await
     {
         Ok(_) => {
-            log::info!(
+            tracing::info!(
                 "request_id {} - New subscriber details have been saved",
                 request_id
             );
@@ -45,7 +45,7 @@ pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> Ht
             HttpResponse::Ok().finish()
         }
         Err(e) => {
-            log::error!(
+            tracing::error!(
                 "request_id {} - Failed to execute query: {:?}",
                 request_id,
                 e
