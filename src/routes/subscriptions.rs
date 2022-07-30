@@ -5,6 +5,40 @@ use tracing::Instrument;
 use tracing::{error, info};
 use uuid::Uuid;
 
+/*
+//Experimenting with 'static - see https://docs.rs/tracing/latest/tracing/trait.Subscriber.html
+trait StaticTrait :'static {}
+
+const usize_arr: [usize; 4] = [1usize, 2, 3, 4];
+
+#[allow(unused)]
+struct StaticOkStruct {
+    integ: i32,
+    non_negative: usize,
+    static_str: &'static str,
+    static_usize_slice: &'static [usize]
+}
+
+impl StaticTrait for StaticOkStruct {}
+
+#[allow(unused)]
+static static_ok: StaticOkStruct = StaticOkStruct {
+    integ: -5,
+    non_negative: 0,
+    static_str: "hello",
+    static_usize_slice: &usize_arr
+};
+
+struct StaticBreakingStruct<'a> {
+    any_string: &'a str,
+    any_usize_ref: &'a usize,
+    any_usize_slice: &'a [usize]
+}
+
+// This breaks:
+// impl <'a> StaticTrait for StaticBreakingStruct<'a> {}
+*/
+
 #[derive(serde::Deserialize)]
 pub struct FormData {
     email: String,
