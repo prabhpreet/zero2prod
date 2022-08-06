@@ -24,6 +24,7 @@ where
 }
 
 pub fn init_subscriber(subscriber: impl Subscriber + Sync + Send) {
+    // Logger Tracer collect actix-web logging messages and directs them to the Tracing library
     LogTracer::init().expect("Failed to set logger");
 
     set_global_default(subscriber).expect("Failed to set subscriber.");
