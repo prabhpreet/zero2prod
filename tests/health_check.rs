@@ -71,17 +71,16 @@ async fn spawn_app() -> TestApp {
 }
 
 pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
-    let mut connection =
-        PgConnection::connect(&config.connection_string_without_db().expose_secret())
-            .await
-            .expect("Failed to connect to Postgres");
+    let mut connection = PgConnection::connect(&config.without_db())
+        .await
+        .expect("Failed to connect to Postgres");
 
     connection
         .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
         .await
         .expect("Failed to create database.");
 
-    let connection_pool = PgPool::connect(&config.connection_string().expose_secret())
+    let connection_pool = PgPool::connect(&config.with_db())
         .await
         .expect("Failed to connect to Postgres");
 
@@ -101,7 +100,7 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
         db_pool,
     } = spawn_app().await;
     let configuration = get_configuration().expect("Failed to read configuration");
-    let connection_string = configuration.database.connection_string();
+    let connection_string = configuration.database.with_db();
     let client = reqwest::Client::new();
     // Act
     let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
