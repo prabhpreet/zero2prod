@@ -1,3 +1,4 @@
+use crate::domain::{NewSubscriber, SubscriberName};
 use actix_web::{web, HttpResponse};
 use chrono::Utc;
 use sqlx::PgPool;
@@ -5,7 +6,6 @@ use tracing::Instrument;
 use tracing::{error, info};
 use unicode_segmentation::UnicodeSegmentation;
 use uuid::Uuid;
-use crate::domain::{NewSubscriber, SubscriberName};
 
 /*
 //Experimenting with 'static - see https://docs.rs/tracing/latest/tracing/trait.Subscriber.html
@@ -59,7 +59,7 @@ pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> Ht
     //let subscriber_name = crate::domain::SubscriberName(form.name.clone());
     let new_subscriber = NewSubscriber {
         email: form.0.email,
-        name: SubscriberName::parse(form.0.name),
+        name: SubscriberName::parse(form.0.name).expect("Name validation failed."),
     };
     /*if !is_valid_name(&form.name) {
         return HttpResponse::BadRequest().finish();
@@ -74,7 +74,10 @@ pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> Ht
     name = "Saving new subscriber details in the database",
     skip(new_subscriber, pool)
 )]
-pub async fn insert_subscriber(pool: &PgPool, new_subscriber: &NewSubscriber) -> Result<(), sqlx::Error> {
+pub async fn insert_subscriber(
+    pool: &PgPool,
+    new_subscriber: &NewSubscriber,
+) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
         INSERT INTO subscriptions (id, email, name, subscribed_at)
@@ -82,7 +85,7 @@ pub async fn insert_subscriber(pool: &PgPool, new_subscriber: &NewSubscriber) ->
         "#,
         Uuid::new_v4(),
         new_subscriber.email,
-        new_subscriber.name.inner_ref(),
+        new_subscriber.name.as_ref(),
         Utc::now()
     )
     .execute(pool)
