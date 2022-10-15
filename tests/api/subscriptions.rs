@@ -1,30 +1,23 @@
 use crate::helpers::{spawn_app, TestApp};
 use mobexplorezero2prod::configuration::get_configuration;
+use wiremock::Mock;
 
 #[tokio::test]
 async fn subscribe_returns_a_200_for_valid_form_data() {
     // Arrange
-    let TestApp {
-        address: app_address,
-        db_pool,
-    } = spawn_app().await;
-    let configuration = get_configuration().expect("Failed to read configuration");
-    let connection_string = configuration.database.with_db();
+    let app = spawn_app().await;
     let client = reqwest::Client::new();
+
+    //Mock::given(path("/email")).and(method("POST")).respond_with(ResponseTemplate::new(200)).mount(&app.email_server).await;
+
     // Act
     let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
-    let response = client
-        .post(&format!("{}/subscriptions", &app_address))
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .body(body)
-        .send()
-        .await
-        .expect("Failed to execute request.");
+    let response = app.post_subscription(body.into()).await;
     // Assert
     assert_eq!(200, response.status().as_u16());
 
     let saved = sqlx::query!("SELECT email, name FROM subscriptions",)
-        .fetch_one(&db_pool)
+        .fetch_one(&app.db_pool)
         .await
         .expect("Failed to fetch saved subscription.");
 
@@ -35,11 +28,7 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 #[tokio::test]
 async fn subscribe_returns_a_400_when_data_is_missing() {
     // Arrange
-    let TestApp {
-        address: app_address,
-        ..
-    } = spawn_app().await;
-    let client = reqwest::Client::new();
+    let app = spawn_app().await;
     let test_cases = vec![
         ("name=le%20guin", "missing the email"),
         ("email=ursula_le_guin%40gmail.com", "missing the name"),
@@ -47,13 +36,7 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
     ];
     for (invalid_body, error_message) in test_cases {
         // Act
-        let response = client
-            .post(&format!("{}/subscriptions", &app_address))
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .body(invalid_body)
-            .send()
-            .await
-            .expect("Failed to execute request.");
+        let response = app.post_subscription(invalid_body.into()).await;
         // Assert
         assert_eq!(
             400,
@@ -69,7 +52,6 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
 async fn subscribe_returns_a_400_when_fields_are_present_but_empty() {
     // Arrange
     let app = spawn_app().await;
-    let client = reqwest::Client::new();
     let test_cases = vec![
         ("name=&email=ursula_le_guin%40gmail.com", "empty name"),
         ("name=Ursula&email=", "empty email"),
@@ -78,13 +60,8 @@ async fn subscribe_returns_a_400_when_fields_are_present_but_empty() {
 
     for (body, description) in test_cases {
         // Act
-        let response = client
-            .post(&format!("{}/subscriptions", &app.address))
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .body(body)
-            .send()
-            .await
-            .expect("Failed to execute request.");
+        let response = app.post_subscription(body.into())
+            .await;
 
         // Assert
         assert_eq!(
